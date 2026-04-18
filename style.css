@@ -43,15 +43,6 @@ h1 {
     animation: fadeInDown 0.8s ease-out;
 }
 
-p.subtitle {
-    text-align: center;
-    color: #94a3b8;
-    font-size: 1.2rem;
-    font-weight: 300;
-    margin-bottom: 3rem;
-    animation: fadeInUp 0.8s ease-out;
-}
-
 .controls {
     display: flex;
     justify-content: center;
