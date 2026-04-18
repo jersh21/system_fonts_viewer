@@ -8,8 +8,8 @@ Just a simple web app I made to preview all the local fonts installed on my comp
 ## What it does
 - Uses the Local Font Access API to grab your system fonts.
 - Lets you type whatever you want to see how it looks.
-- Sliders for font size and color.
-- A quick toggle to only show monospaced fonts.
+- Sliders for font size and adjustable color.
+- A toggle for monospaced fonts.
 
 ## Running it locally
 
