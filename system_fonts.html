@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Font Viewer</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>System Font Viewer</h1>
+        <p class="subtitle">Experience your entire typographic collection</p>
+
+        <div class="controls">
+            <button id="load-btn">Load System Fonts</button>
+            <input type="text" id="preview-text" value="The quick brown fox" placeholder="Type to preview...">
+            <input type="text" id="search-text" placeholder="Search fonts...">
+            <div class="slider-group">
+                <label for="font-size">Size:</label>
+                <input type="range" id="font-size" min="12" max="100" value="40">
+                <span id="size-val">40px</span>
+            </div>
+            <div class="slider-group">
+                <label for="font-color">Color:</label>
+                <input type="color" id="font-color" value="#ffffff">
+            </div>
+            <div class="slider-group">
+                <label for="theme-select">Theme:</label>
+                <select id="theme-select">
+                    <option value="dark-blue">Dark Blue</option>
+                    <option value="light">Light Mode</option>
+                    <option value="midnight">Midnight</option>
+                    <option value="sunset">Sunset</option>
+                    <option value="forest">Forest</option>
+                </select>
+            </div>
+            <label class="checkbox-group">
+                <input type="checkbox" id="mono-only">
+                <span>Monospaced Only</span>
+            </label>
+        </div>
+
+        <div id="error-msg" class="error"></div>
+        <div id="font-grid"></div>
+    </div>
+
+    <script>
+        const loadBtn = document.getElementById('load-btn');
+        const grid = document.getElementById('font-grid');
+        const previewInput = document.getElementById('preview-text');
+        const searchInput = document.getElementById('search-text');
+        const fontSizeInput = document.getElementById('font-size');
+        const sizeVal = document.getElementById('size-val');
+        const fontColorInput = document.getElementById('font-color');
+        const errorMsg = document.getElementById('error-msg');
+        const monoOnlyCheckbox = document.getElementById('mono-only');
+
+        let systemFonts = [];
+
+        loadBtn.addEventListener('click', async () => {
+            if (!('queryLocalFonts' in window)) {
+                showError('Your browser does not support the Local Font Access API. <br>Please use Chrome or Edge (version 103+) and ensure you are running this page via localhost or HTTPS.');
+                return;
+            }
+
+            try {
+                // Request access to local fonts
+                const fonts = await window.queryLocalFonts();
+
+                // Group by family name to avoid displaying the same family multiple times
+                const uniqueFamilies = new Map();
+                for (const font of fonts) {
+                    if (!uniqueFamilies.has(font.family)) {
+                        uniqueFamilies.set(font.family, font);
+                    }
+                }
+
+                systemFonts = Array.from(uniqueFamilies.values()).sort((a, b) => a.family.localeCompare(b.family));
+
+                loadBtn.style.display = 'none';
+                errorMsg.style.display = 'none';
+
+                // Add a count indicator
+                const countDisplay = document.createElement('p');
+                countDisplay.style.textAlign = 'center';
+                countDisplay.style.color = '#38bdf8';
+                countDisplay.style.marginTop = '-1.5rem';
+                countDisplay.style.marginBottom = '2rem';
+                countDisplay.style.fontWeight = '500';
+                countDisplay.textContent = `Loaded ${fonts.length} total font variations across ${systemFonts.length} font families.`;
+                document.querySelector('.controls').after(countDisplay);
+
+                renderFonts();
+            } catch (err) {
+                showError(`Access denied or error occurred: ${err.message}. Please click 'Allow' when prompted.`);
+            }
+        });
+
+        function showError(msg) {
+            errorMsg.innerHTML = msg;
+            errorMsg.style.display = 'block';
+        }
+
+        function isMonospace(fontFamily) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            // Check width of a narrow and wide character to see if they match
+            context.font = `16px "${fontFamily}", monospace`;
+            const widthI = context.measureText('i').width;
+            const widthW = context.measureText('W').width;
+            return widthI === widthW && widthI > 0;
+        }
+
+        function renderFonts() {
+            grid.innerHTML = '';
+            const previewStr = previewInput.value || 'The quick brown fox';
+            const searchStr = searchInput.value.toLowerCase();
+
+            let filteredFonts = systemFonts.filter(font => font.family.toLowerCase().includes(searchStr));
+
+            if (monoOnlyCheckbox.checked) {
+                filteredFonts = filteredFonts.filter(font => isMonospace(font.family));
+            }
+
+            filteredFonts.forEach((font, index) => {
+                const card = document.createElement('div');
+                card.className = 'font-card';
+                // Stagger animations
+                card.style.animationDelay = `${(index % 20) * 0.05}s`;
+
+                const header = document.createElement('div');
+                header.className = 'font-name';
+                header.innerHTML = `<span>${font.family}</span>`;
+
+                const preview = document.createElement('div');
+                preview.className = 'font-preview';
+                preview.style.fontFamily = `"${font.family}"`;
+                preview.style.fontSize = `${fontSizeInput.value}px`;
+                preview.textContent = previewStr;
+
+                card.appendChild(header);
+                card.appendChild(preview);
+                grid.appendChild(card);
+            });
+        }
+
+        previewInput.addEventListener('input', () => {
+            if (systemFonts.length > 0) {
+                const previews = document.querySelectorAll('.font-preview');
+                const text = previewInput.value || 'The quick brown fox';
+                previews.forEach(p => p.textContent = text);
+            }
+        });
+
+        searchInput.addEventListener('input', () => {
+            if (systemFonts.length > 0) renderFonts();
+        });
+
+        monoOnlyCheckbox.addEventListener('change', () => {
+            if (systemFonts.length > 0) renderFonts();
+        });
+
+        fontSizeInput.addEventListener('input', () => {
+            sizeVal.textContent = `${fontSizeInput.value}px`;
+            if (systemFonts.length > 0) {
+                const previews = document.querySelectorAll('.font-preview');
+                previews.forEach(p => p.style.fontSize = `${fontSizeInput.value}px`);
+            }
+        });
+
+        fontColorInput.addEventListener('input', () => {
+            document.documentElement.style.setProperty('--preview-color', fontColorInput.value);
+        });
+
+        const themeSelect = document.getElementById('theme-select');
+        const themes = {
+            'dark-blue': {
+                '--bg-color': '#0b0f19',
+                '--card-bg': 'rgba(20, 27, 45, 0.6)',
+                '--card-hover-bg': 'rgba(30, 41, 59, 0.8)',
+                '--text-color': '#e2e8f0',
+                '--accent-color': '#00f2fe',
+                '--secondary-color': '#4facfe',
+                '--input-bg': 'rgba(11, 15, 25, 0.8)',
+                '--input-text': '#ffffff',
+                '--input-border': 'rgba(79, 172, 254, 0.2)'
+            },
+            'light': {
+                '--bg-color': '#f8fafc',
+                '--card-bg': 'rgba(255, 255, 255, 0.7)',
+                '--card-hover-bg': 'rgba(241, 245, 249, 0.9)',
+                '--text-color': '#0f172a',
+                '--accent-color': '#3b82f6',
+                '--secondary-color': '#8b5cf6',
+                '--input-bg': 'rgba(255, 255, 255, 0.9)',
+                '--input-text': '#0f172a',
+                '--input-border': 'rgba(59, 130, 246, 0.3)'
+            },
+            'midnight': {
+                '--bg-color': '#000000',
+                '--card-bg': 'rgba(15, 15, 15, 0.8)',
+                '--card-hover-bg': 'rgba(25, 25, 25, 0.9)',
+                '--text-color': '#ffffff',
+                '--accent-color': '#a855f7',
+                '--secondary-color': '#ec4899',
+                '--input-bg': 'rgba(20, 20, 20, 0.9)',
+                '--input-text': '#ffffff',
+                '--input-border': 'rgba(168, 85, 247, 0.3)'
+            },
+            'sunset': {
+                '--bg-color': '#2a0a18',
+                '--card-bg': 'rgba(60, 10, 25, 0.6)',
+                '--card-hover-bg': 'rgba(80, 15, 30, 0.8)',
+                '--text-color': '#fce7f3',
+                '--accent-color': '#f97316',
+                '--secondary-color': '#eab308',
+                '--input-bg': 'rgba(40, 5, 20, 0.8)',
+                '--input-text': '#ffffff',
+                '--input-border': 'rgba(249, 115, 22, 0.3)'
+            },
+            'forest': {
+                '--bg-color': '#064e3b',
+                '--card-bg': 'rgba(6, 95, 70, 0.6)',
+                '--card-hover-bg': 'rgba(4, 120, 87, 0.8)',
+                '--text-color': '#ecfdf5',
+                '--accent-color': '#34d399',
+                '--secondary-color': '#10b981',
+                '--input-bg': 'rgba(6, 78, 59, 0.8)',
+                '--input-text': '#ffffff',
+                '--input-border': 'rgba(52, 211, 153, 0.3)'
+            }
+        };
+
+        themeSelect.addEventListener('change', (e) => {
+            const theme = themes[e.target.value];
+            for (const key in theme) {
+                document.documentElement.style.setProperty(key, theme[key]);
+            }
+        });
+    </script>
+</body>
+
+</html>
