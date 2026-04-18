@@ -2,7 +2,8 @@
 
 Just a simple web app I made to preview all the local fonts installed on my computer. 
 
-![Screenshot](screenshot.png)
+<img width="1345" height="852" alt="image" src="https://github.com/user-attachments/assets/2a96888a-45fb-4523-8829-995de9c5c3c0" />
+
 
 ## What it does
 - Uses the Local Font Access API to grab your system fonts.
